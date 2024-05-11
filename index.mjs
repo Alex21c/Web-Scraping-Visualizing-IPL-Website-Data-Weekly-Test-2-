@@ -84,14 +84,17 @@ async function init(){
 
     // fetching 
     // click on season selector
-    let seasonSelector = 'div.col-lg-2.col-md-2.col-sm-12>div.customSelecBox';
-    await page.waitForSelector(seasonSelector); // Wait for the season selector to appear
-    await page.click(seasonSelector);
+    // let seasonSelector = 'div.col-lg-2.col-md-2.col-sm-12>div.customSelecBox';
+    // await page.waitForSelector(seasonSelector); // Wait for the season selector to appear
+    // await page.click(seasonSelector);
 
-    // now let me click on season 2023
-     await page.$eval(seasonSelector, async el=>{
-      await el.click();
-     });
+    // click on orange cap menu
+    let orangeCapFilterMenu = 'div.col-lg-3.col-md-3.col-sm-12.statsFilter';
+    await page.waitForSelector(orangeCapFilterMenu); // Wait for the season selector to appear
+    await page.click(orangeCapFilterMenu);
+    
+
+
 
 
     
