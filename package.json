@@ -1,0 +1,29 @@
+{
+  "name": "m6node-weekly-test-2-web-scraping-and-visualizing-ipl-website",
+  "version": "1.0.0",
+  "description": "Web Scraping & Visualizing IPL Website Data (Weekly Test #2)",
+  "main": "index.mjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Alex21c/Web-Scraping-Visualizing-IPL-Website-Data-Weekly-Test-2-.git"
+  },
+  "keywords": [
+    "web scraping and visualizing ipl website using node.js",
+    "node.js",
+    "back end",
+    "weekly test 2",
+    "geekster"
+  ],
+  "author": "Abhishek Kumar",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Alex21c/Web-Scraping-Visualizing-IPL-Website-Data-Weekly-Test-2-/issues"
+  },
+  "homepage": "https://github.com/Alex21c/Web-Scraping-Visualizing-IPL-Website-Data-Weekly-Test-2-#readme",
+  "dependencies": {
+    "puppeteer": "^22.8.0"
+  }
+}
