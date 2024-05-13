@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer';
 import fs from 'node:fs';
-
+import path from 'node:path';
 // DATA TO SCRAP AND SHOW : Scrape data of last 5 seasons for
 // Top 10 players who deserves orange cap in each season with their runs
 // Top 10 players who hit most 4's in each season
@@ -17,58 +17,18 @@ function consoleLogFile(data){
   });
 }
 
-// shall save the data into excel file
-function storeDataIntoExcelFile(jobs){
-    if(jobs.length===0){
-      return ;
-    }      
-      // now i want to save it into the excel file
-      // Create a new workbook
-      try {
-        let sheet = xlsx.utils.json_to_sheet(jobs);
-        let workbook = xlsx.utils.book_new();
-          xlsx.utils.book_append_sheet(workbook, sheet, 'sheet1');
-    
-          xlsx.writeFile(workbook, 'jobs.xlsx');
-          console.log('Data saved into jobs.xlsx file Successfully!');
-        
-      } catch (error) {
-        console.log('ERROR saving data into excel file. ', error);
-      }
-}
 
 // help me providing some time to load web page, and then begin scraping
   let customWait = (delay)=> new Promise((resolve, reject)=>{
     setTimeout(()=>{resolve()}, delay);
   });
 
-async function doScrapingTask(){
-  return new Promise(async (resolve, reject)=>{
-    try {
-      consoleLogFile(`i'm inside promise doScrapingTask`);
-      // performing scraping
-      // now looking for orange cap players
-      let selectorStatsFilter = 'div.col-lg-3.col-md-3.col-sm-12.statsFilter';
-      // let selectorStatsFilter = 'div.col-lg-2.col-md-2.col-sm-12>div.customSelecBox';
-      // now i want to click on it
-      await page.waitForSelector(selectorStatsFilter); // Wait for the season selector to appear
-      await page.click(selectorStatsFilter);
-     
 
-      // work done
-      resolve();
-
-    } catch (error) {
-      reject();
-    }
-
-
-  });
-}
 
 // the Engine
+
 async function init(){
-  let URL = 'https://www.iplt20.com/stats/';
+  let URL = 'https://www.iplt20.com/stats/2024';
   const browser = await puppeteer.launch({headless: false});
   try {
     // launch a browser and open a new blank tab
@@ -82,22 +42,15 @@ async function init(){
 
 
 
-    // fetching 
-    // click on season selector
-    // let seasonSelector = 'div.col-lg-2.col-md-2.col-sm-12>div.customSelecBox';
-    // await page.waitForSelector(seasonSelector); // Wait for the season selector to appear
-    // await page.click(seasonSelector);
-
-    // click on orange cap menu
-    let orangeCapFilterMenu = 'div.col-lg-3.col-md-3.col-sm-12.statsFilter';
-    await page.waitForSelector(orangeCapFilterMenu); // Wait for the season selector to appear
-    await page.click(orangeCapFilterMenu);
-    
-
-
-
-
-    
+    // process each filter list item    
+    let selectorTableMostFourInnings ="";
+    // click on most four innings
+      clickOnSpecificFilter(page, 'Most Fours (Innings)');
+      // now fetch the table containing the results of most four innings
+      selectorTableMostFourInnings  = 'table.st-table.statsTable.ng-scope';
+      await scrapeTableData(selectorTableMostFourInnings, page);
+      
+      
     
   } catch (error) {
     console.log('There is an error, ', error);
@@ -106,11 +59,78 @@ async function init(){
       setTimeout(async ()=>{
 
         await browser.close();
-      },10000)
+      },5000)
   }
 
 
 }
 
+async function clickOnSpecificFilter(page=null){
+  if(page==null ){
+    return;
+  }   
+  // click on orange cap menu
+      let orangeCapFilterMenu = 'div.col-lg-3.col-md-3.col-sm-12.statsFilter';
+      await page.waitForSelector(orangeCapFilterMenu); // Wait for the season selector to appear
+      await page.click(orangeCapFilterMenu);
+  // clickOnMostFourInnings        
+    let filterList = await page.$$('div.cSBList>>>div.cSBListItems.batters.selected.ng-binding.ng-scope');
+    for (let filterItem of filterList) {
+      let isClicked = await page.evaluate(async element => {
+        if(element.textContent.includes('Most Fours (Innings)')){
+          element.click();
+          return true;
+        }
+        // default is 
+        return false;
+      }, filterItem);
+      if(isClicked){
+        break;
+      }    
+    }
+
+}
+
+async function scrapeTableData(selectorTableMostFourInnings=null, page=null){
+    if(selectorTableMostFourInnings === null || page === null){
+      return;
+    }
+
+    // wait for this table to load
+      await page.waitForSelector(selectorTableMostFourInnings);
+      // custom wait
+      await customWait(1000);
+    // now fetch its body
+      let tableRows = await page.$$(selectorTableMostFourInnings+ ' tr');
+      let scrapedData = [];
+      for(let currentRow of tableRows){
+        let rowData = await page.evaluate(row=>{
+          // th
+            let columns = row.querySelectorAll('th');
+          // td
+            if(columns.length ===0 ){
+              columns = row.querySelectorAll('td');
+            }
+          let rowData = Array.from(columns, column => column.textContent.trim());
+          return rowData;
+        }, currentRow);   
+        scrapedData.push(rowData);
+      }
+    // save this data into file
+    let fileName = "MostFourInnings.json";
+    writeDataIntoFile(fileName, scrapedData);
+}
+function writeDataIntoFile(fileName, scrapedData){
+  try {
+    let filePath = path.join('ScrapedDB', fileName);
+    fs.writeFileSync(filePath, JSON.stringify(scrapedData), 'utf-8');
+    console.log(`Data successfully written into file: ${fileName}!`)
+  } catch (error) {
+    console.log(`Error writing data to file: ${fileName}! (${error.message})`)
+    
+  }
+    
+}
 // await consoleLogFile('hi there');
 init();
+// writeDataIntoFile();
