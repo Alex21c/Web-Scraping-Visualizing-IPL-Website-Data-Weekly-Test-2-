@@ -44,12 +44,28 @@ async function init(){
 
     // process each filter list item    
     let selectorTableMostFourInnings ="";
-    // click on most four innings
-      clickOnSpecificFilter(page, 'Most Fours (Innings)');
-      // now fetch the table containing the results of most four innings
-      selectorTableMostFourInnings  = 'table.st-table.statsTable.ng-scope';
-      await scrapeTableData(selectorTableMostFourInnings, page);
-      
+
+    let overAllScrapedData = {}, scrapedData;
+    let requiredFilters = [
+      'Orange Cap',
+      'Most Fours (Innings)',
+      'Most Sixes (Innings)',
+      'Most Centuries',
+      'Fastest Fifties'
+    ];
+
+    for(let filter of requiredFilters){
+      // click on filter
+        clickOnSpecificFilter(page, filter);
+        // now fetch the table containing the results of most four innings
+        selectorTableMostFourInnings  = 'table.st-table.statsTable.ng-scope';
+        scrapedData = await scrapeTableData(selectorTableMostFourInnings, page);
+        overAllScrapedData[filter] = scrapedData;
+    }
+
+    // The result is
+    console.log(overAllScrapedData);
+    writeDataIntoFile('season2024.json', overAllScrapedData);
       
     
   } catch (error) {
@@ -65,10 +81,11 @@ async function init(){
 
 }
 
-async function clickOnSpecificFilter(page=null){
-  if(page==null ){
+async function clickOnSpecificFilter(page=null, filterName=null){
+  if(page==null || filterName ==null ){
     return;
   }   
+
   // click on orange cap menu
       let orangeCapFilterMenu = 'div.col-lg-3.col-md-3.col-sm-12.statsFilter';
       await page.waitForSelector(orangeCapFilterMenu); // Wait for the season selector to appear
@@ -76,21 +93,21 @@ async function clickOnSpecificFilter(page=null){
   // clickOnMostFourInnings        
     let filterList = await page.$$('div.cSBList>>>div.cSBListItems.batters.selected.ng-binding.ng-scope');
     for (let filterItem of filterList) {
-      let isClicked = await page.evaluate(async element => {
-        if(element.textContent.includes('Most Fours (Innings)')){
+      let isClicked = await page.evaluate(async (element, filterName) => {        
+        if(element.textContent.includes(filterName)){
           element.click();
           return true;
         }
         // default is 
         return false;
-      }, filterItem);
+      }, filterItem, filterName);
       if(isClicked){
         break;
       }    
     }
 
 }
-
+// it is same for all the filters whatever the name 4's or 6's etc.
 async function scrapeTableData(selectorTableMostFourInnings=null, page=null){
     if(selectorTableMostFourInnings === null || page === null){
       return;
@@ -105,21 +122,32 @@ async function scrapeTableData(selectorTableMostFourInnings=null, page=null){
       let scrapedData = [];
       for(let currentRow of tableRows){
         let rowData = await page.evaluate(row=>{
+          let isItTh = true;
           // th
             let columns = row.querySelectorAll('th');
           // td
             if(columns.length ===0 ){
+              isItTh=false;
               columns = row.querySelectorAll('td');
             }
           let rowData = Array.from(columns, column => column.textContent.trim());
+          // can i fetch the player image?
+          if(isItTh){
+            rowData.push('PlayerImageURL');
+          }else{
+            let playerImageUrl = row.querySelector('div.pbi>img');
+            playerImageUrl = playerImageUrl ? playerImageUrl.getAttribute('src') : "";
+
+            rowData.push(playerImageUrl);
+          }
           return rowData;
         }, currentRow);   
         scrapedData.push(rowData);
       }
-    // save this data into file
-    let fileName = "MostFourInnings.json";
-    writeDataIntoFile(fileName, scrapedData);
+    // return
+      return scrapedData;
 }
+
 function writeDataIntoFile(fileName, scrapedData){
   try {
     let filePath = path.join('ScrapedDB', fileName);
@@ -131,6 +159,7 @@ function writeDataIntoFile(fileName, scrapedData){
   }
     
 }
+
 // await consoleLogFile('hi there');
 init();
 // writeDataIntoFile();
