@@ -41,7 +41,6 @@ async function init(){
       await page.goto(URL);
 
 
-
     // process each filter list item    
     let selectorTableMostFourInnings ="";
 
